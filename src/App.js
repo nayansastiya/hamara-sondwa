@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect } from "react";
-import { db } from "./firebase";
-import { collection, addDoc, updateDoc, doc, onSnapshot } from "firebase/firestore";
+import { db, auth } from "./firebase";
+import { collection, addDoc, updateDoc, doc, getDoc, onSnapshot } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import Auth from "./Auth";
 
 const fontLink = document.createElement("link");
 fontLink.rel = "stylesheet";
@@ -45,9 +47,9 @@ const PCATS = [
 ];
 
 const SHOPS0 = [
-  {id:1,name:"AJAY SASTIYA KIRANA SHOP",owner:"AJAY SASTIYA",village:"सोंडवा",phone:"9754849608",rating:4.5,reviews:12,open:true,catId:101,desc:"COLD DRINKS,TADI, NAMKEEN, BISCUITS, CHIPS, TOILETRIES, HOUSEHOLD ITEMS",
+  {id:1,name:"AJAY SASTIYA KIRANA SHOP",owner:"AJAY SASTIYA",village:"PUJARA FALIYA, SAKDI ROAD ,SONDWA",phone:"9754849608",rating:4.5,reviews:12,open:true,catId:101,desc:"COLD DRINKS,TADI, NAMKEEN, BISCUITS, CHIPS, TOILETRIES, HOUSEHOLD ITEMS",
    items:[{id:1,name:"TADI 1 JUG",price:50,unit:"₹",available:true,emoji:"🧂"},{id:2,name:"fanta ",price:50,unit:"₹",available:true,emoji:"🛢️"},{id:3,name:"चीनी 1kg",price:45,unit:"₹",available:false,emoji:"🍬"},{id:4,name:"बासमती चावल 5kg",price:280,unit:"₹",available:true,emoji:"🍚"},{id:5,name:"आटा 10kg",price:320,unit:"₹",available:true,emoji:"🌾"},{id:6,name:"दाल चना 1kg",price:90,unit:"₹",available:false,emoji:"🫘"}]},
-  {id:2,name:"किसान एग्रो सेंटर",owner:"महेश भाई",village:"सोंडवा",phone:"90251XXXXX",rating:4.7,reviews:20,open:true,catId:102,desc:"सभी प्रकार के बीज, खाद, कीटनाशक",
+  {id:2,name:"SASTIYA SUTAR",owner:"VINOD SASTIYA",village:"PUJARA FALIYA, SAKDI ROAD ,SONDWA",phone:"9669714652",rating:4.7,reviews:20,open:true,catId:102,desc:"SABHI PRAKAR KE SUTARI KAM KIYE JATE HAIN",
    items:[{id:1,name:"DAP खाद 50kg",price:1350,unit:"₹",available:true,emoji:"🌱"},{id:2,name:"यूरिया 45kg",price:280,unit:"₹",available:true,emoji:"💊"},{id:3,name:"गेहूं बीज 1kg",price:65,unit:"₹",available:false,emoji:"🌾"},{id:4,name:"सोयाबीन बीज",price:85,unit:"₹",available:true,emoji:"🫘"}]},
   {id:3,name:"जन औषधि स्टोर",owner:"डॉ. सुरेश",village:"सोंडवा",phone:"99251XXXXX",rating:4.8,reviews:35,open:true,catId:103,desc:"सस्ती दवाइयाँ, PM Jan Aushadhi",
    items:[{id:1,name:"Paracetamol 10",price:8,unit:"₹",available:true,emoji:"💊"},{id:2,name:"ORS Packet",price:5,unit:"₹",available:true,emoji:"🧪"},{id:3,name:"Betadine 100ml",price:65,unit:"₹",available:true,emoji:"🩺"},{id:4,name:"BP Machine",price:850,unit:"₹",available:false,emoji:"🫀"}]},
@@ -134,6 +136,21 @@ const GondSun = ({size=52}) => (
 /* ── MAIN APP ── */
 export default function App() {
   const [screen, setScreen] = useState("home");
+  const [currentUser, setCurrentUser] = useState(null);
+const [authLoading, setAuthLoading] = useState(true);
+
+useEffect(() => {
+  const unsub = onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) setCurrentUser(userDoc.data());
+    } else {
+      setCurrentUser(null);
+    }
+    setAuthLoading(false);
+  });
+  return () => unsub();
+}, []);
   const [selCat, setSelCat] = useState(null);
   const [selSub, setSelSub] = useState(null);
   const [selShop, setSelShop] = useState(null);
@@ -217,6 +234,19 @@ useEffect(() => {
       <Nav/>
     </div>
   );
+
+  if (authLoading) return (
+  <div style={{minHeight:"100vh",background:"#0A0300",display:"flex",
+    alignItems:"center",justifyContent:"center"}}>
+    <div style={{color:"#D4891A",fontSize:18,fontFamily:"'Baloo 2',sans-serif"}}>
+      Loading... 🏘️
+    </div>
+  </div>
+);
+
+if (!currentUser) return (
+  <Auth onLogin={(user) => setCurrentUser(user)} />
+);
 
   /* ── HOME ── */
   if(screen === "home") return wrap(
