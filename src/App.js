@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
+import { db } from "./firebase";
+import { collection, addDoc, updateDoc, doc, onSnapshot } from "firebase/firestore";
 
 const fontLink = document.createElement("link");
 fontLink.rel = "stylesheet";
@@ -42,8 +45,8 @@ const PCATS = [
 ];
 
 const SHOPS0 = [
-  {id:1,name:"रमेश किराना स्टोर",owner:"रमेश पटेल",village:"सोंडवा",phone:"94251XXXXX",rating:4.5,reviews:12,open:true,catId:101,desc:"सभी जरूरी सामान, थोक और खुदरा दोनों",
-   items:[{id:1,name:"टाटा नमक 1kg",price:22,unit:"₹",available:true,emoji:"🧂"},{id:2,name:"सरसों तेल 1L",price:145,unit:"₹",available:false,emoji:"🛢️"},{id:3,name:"चीनी 1kg",price:45,unit:"₹",available:true,emoji:"🍬"},{id:4,name:"बासमती चावल 5kg",price:280,unit:"₹",available:true,emoji:"🍚"},{id:5,name:"आटा 10kg",price:320,unit:"₹",available:true,emoji:"🌾"},{id:6,name:"दाल चना 1kg",price:90,unit:"₹",available:false,emoji:"🫘"}]},
+  {id:1,name:"AJAY SASTIYA KIRANA SHOP",owner:"AJAY SASTIYA",village:"सोंडवा",phone:"9754849608",rating:4.5,reviews:12,open:true,catId:101,desc:"COLD DRINKS,TADI, NAMKEEN, BISCUITS, CHIPS, TOILETRIES, HOUSEHOLD ITEMS",
+   items:[{id:1,name:"TADI 1 JUG",price:50,unit:"₹",available:true,emoji:"🧂"},{id:2,name:"fanta ",price:50,unit:"₹",available:true,emoji:"🛢️"},{id:3,name:"चीनी 1kg",price:45,unit:"₹",available:false,emoji:"🍬"},{id:4,name:"बासमती चावल 5kg",price:280,unit:"₹",available:true,emoji:"🍚"},{id:5,name:"आटा 10kg",price:320,unit:"₹",available:true,emoji:"🌾"},{id:6,name:"दाल चना 1kg",price:90,unit:"₹",available:false,emoji:"🫘"}]},
   {id:2,name:"किसान एग्रो सेंटर",owner:"महेश भाई",village:"सोंडवा",phone:"90251XXXXX",rating:4.7,reviews:20,open:true,catId:102,desc:"सभी प्रकार के बीज, खाद, कीटनाशक",
    items:[{id:1,name:"DAP खाद 50kg",price:1350,unit:"₹",available:true,emoji:"🌱"},{id:2,name:"यूरिया 45kg",price:280,unit:"₹",available:true,emoji:"💊"},{id:3,name:"गेहूं बीज 1kg",price:65,unit:"₹",available:false,emoji:"🌾"},{id:4,name:"सोयाबीन बीज",price:85,unit:"₹",available:true,emoji:"🫘"}]},
   {id:3,name:"जन औषधि स्टोर",owner:"डॉ. सुरेश",village:"सोंडवा",phone:"99251XXXXX",rating:4.8,reviews:35,open:true,catId:103,desc:"सस्ती दवाइयाँ, PM Jan Aushadhi",
@@ -153,6 +156,29 @@ export default function App() {
     setQDone(false); setPDone(false); setShowAddItem(false);
     try { window.scrollTo(0,0); } catch(e) {}
   };
+  useEffect(() => {
+  const unsubscribe = onSnapshot(collection(db, "shops"),(snapshot) => {
+    const data = snapshot.docs.map(doc => ({id: doc.id,...doc.data()}));
+    if(data.length > 0) setShops(data);
+  });
+  return () => unsubscribe();
+}, []);
+
+useEffect(() => {
+  const unsubscribe = onSnapshot(collection(db, "problems"),(snapshot) => {
+    const data = snapshot.docs.map(doc => ({id: doc.id,...doc.data()}));
+    if(data.length > 0) setProblems(data);
+  });
+  return () => unsubscribe();
+}, []);
+
+useEffect(() => {
+  const unsubscribe = onSnapshot(collection(db, "queries"),(snapshot) => {
+    const data = snapshot.docs.map(doc => ({id: doc.id,...doc.data()}));
+    if(data.length > 0) setQueries(data);
+  });
+  return () => unsubscribe();
+}, []);
 
   const myShop = shops[0];
   const shopsBySub = (id) => shops.filter(s => s.catId === id);
@@ -383,10 +409,25 @@ export default function App() {
             <button style={{width:"100%",background:C.bgCard,border:`1.5px dashed ${C.border}`,color:C.chalkDim,borderRadius:10,padding:"12px 0",cursor:"pointer",fontFamily:"'Baloo 2',sans-serif",fontSize:13,marginBottom:12}}>
               🎤 Voice में बोलो (जल्द आएगा)
             </button>
-            <Btn onClick={()=>{
+            <Btn onClick={async()=>{
               if(!qText.trim()) return;
-              setQueries(p=>[{id:Date.now(),shopId:selShop.id,shopName:selShop.name,query:qText,status:"pending",reply:"",time:"अभी"},...p]);
-              setQText(""); setQDone(true);
+              try{
+              await addDoc(collection(db, "queries"), {
+                shopId: selShop.id,
+                shopName: selShop.name,
+                query: qText,
+                status: "pending",
+                reply: "",
+                time: "अभी",
+                createdAt: new Date()
+              });
+      
+                setQText("");
+                setQDone(true);
+              }catch (error) {
+                console.error("failed to send query",error);
+                alert("Query भेजने में समस्या हुई। कृपया फिर से कोशिश करें।");
+              }
             }} bg={C.red} tc={C.chalk}>📤 Query भेजो</Btn>
           </>
         )}
@@ -415,7 +456,8 @@ export default function App() {
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10}}>
                 <div style={{fontSize:13}}><span style={{color:C.ochre,fontWeight:700}}>👍 {p.votes}</span><span style={{color:C.chalkDim,fontSize:11}}> support</span></div>
                 {!votedIds.includes(p.id) && p.status!=="solved"
-                  ? <button onClick={()=>{setProblems(pr=>pr.map(x=>x.id===p.id?{...x,votes:x.votes+1}:x));setVotedIds(pr=>[...pr,p.id]);}}
+                  ? <button onClick={async()=>{await updateDoc(doc(db, "problems", p.id), {votes: p.votes + 1});
+setVotedIds(pr=>[...pr,p.id]);}}
                       style={{background:"rgba(212,137,26,.15)",border:`1px solid ${C.ochre}`,color:C.ochre,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontFamily:"'Baloo 2',sans-serif",fontSize:12,fontWeight:600}}>👍 Support</button>
                   : <span style={{fontSize:11,color:p.status==="solved"?C.greenLight:C.greenLight}}>✅ {p.status==="solved"?"Solved":"Supported"}</span>
                 }
@@ -480,11 +522,19 @@ export default function App() {
             <button style={{width:"100%",background:C.bgCard,border:`1.5px dashed ${C.border}`,color:C.chalkDim,borderRadius:10,padding:"12px 0",cursor:"pointer",fontFamily:"'Baloo 2',sans-serif",fontSize:13,marginBottom:12}}>
               📷 फोटो लगाएं (optional)
             </button>
-            <Btn onClick={()=>{
+            <Btn onClick={async ()=>{
               if(!pForm.cat||!pForm.desc.trim()) return;
               const co = PCATS.find(p=>p.id===pForm.cat);
-              setProblems(pr=>[{id:Date.now(),cat:co.icon,title:pForm.desc.slice(0,70),user:"आप",village:pForm.village,days:0,votes:0,status:"pending"},...pr]);
-              setPDone(true);
+              await addDoc(collection(db, "problems"), {
+  cat: co.icon,
+  title: pForm.desc.slice(0, 70),
+  user: "आप",
+  village: pForm.village,
+  days: 0,
+  votes: 0,
+  status: "pending",
+  createdAt: new Date()
+});
             }} bg={C.kumkum} tc={C.chalk}>📤 समस्या पोस्ट करें</Btn>
           </>
         )}
