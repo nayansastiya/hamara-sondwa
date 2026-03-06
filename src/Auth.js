@@ -51,6 +51,7 @@ export default function Auth({ onLogin }) {
   const [gender, setGender] = useState("");
   const [dob, setDob] = useState("");
   const [village, setVillage] = useState("सोंडवा");
+  // eslint-disable-next-line no-unused-vars
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const fileRef = useRef();

@@ -2,7 +2,7 @@ import RegisterShop from "./RegisterShop";
 import React, { useState, useEffect } from "react";
 import { db, auth } from "./firebase";
 import { collection, addDoc, updateDoc, doc, getDoc, onSnapshot } from "firebase/firestore";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged} from "firebase/auth";
 import Auth from "./Auth";
 
 
