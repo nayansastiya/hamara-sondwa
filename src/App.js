@@ -1,9 +1,10 @@
-
+import RegisterShop from "./RegisterShop";
 import React, { useState, useEffect } from "react";
 import { db, auth } from "./firebase";
 import { collection, addDoc, updateDoc, doc, getDoc, onSnapshot } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import Auth from "./Auth";
+
 
 const fontLink = document.createElement("link");
 fontLink.rel = "stylesheet";
@@ -245,7 +246,55 @@ useEffect(() => {
 );
 
 if (!currentUser) return (
+  
   <Auth onLogin={(user) => setCurrentUser(user)} />
+);
+// Role wise routing
+if (currentUser?.role === "shopkeeper") {
+  // Shopkeeper ka apna app
+  if (!currentUser?.shopCreated) {
+    return (
+      <RegisterShop
+        currentUser={currentUser}
+        onDone={() => setCurrentUser(u => ({...u, shopCreated: true}))}
+      />
+    );
+  }
+  // Shopkeeper dashboard dikhao
+  // (screen based routing neeche hai)
+}
+
+if (currentUser?.role === "sarpanch") {
+  // Sarpanch ka apna app
+  return (
+    <div style={{minHeight:"100vh",background:"#0A0300",color:"#EDE0C4",
+      display:"flex",flexDirection:"column",alignItems:"center",
+      justifyContent:"center",fontFamily:"'Baloo 2',sans-serif",padding:20}}>
+      <div style={{fontSize:60}}>🏛️</div>
+      <div style={{fontFamily:"'Tiro Devanagari Hindi',serif",
+        fontSize:24,color:"#D4891A",marginTop:16}}>
+        सरपंच Dashboard
+      </div>
+      <div style={{fontSize:13,color:"#9A8060",marginTop:8,textAlign:"center"}}>
+        नमस्ते {currentUser.name} जी! 🙏<br/>
+        यह section जल्द आएगा।
+      </div>
+      <button onClick={async()=>{await auth.signOut();setCurrentUser(null);}}
+        style={{marginTop:24,background:"#B5330A",border:"none",
+          color:"#EDE0C4",borderRadius:10,padding:"12px 24px",
+          cursor:"pointer",fontFamily:"'Baloo 2',sans-serif",fontSize:14}}>
+        🚪 Logout
+      </button>
+    </div>
+  );
+}
+if(authLoading) return (
+  <div style={{minHeight:"100vh",background:"#0A0300",display:"flex",
+    alignItems:"center",justifyContent:"center"}}>
+    <div style={{color:"#D4891A",fontSize:18,fontFamily:"'Baloo 2',sans-serif"}}>
+      Loading... 🏘️
+    </div>
+  </div>
 );
 
   /* ── HOME ── */
@@ -773,8 +822,9 @@ setVotedIds(pr=>[...pr,p.id]);}}
         <Card glow style={{marginBottom:16,textAlign:"center"}}>
           <div style={{padding:20}}>
             <div style={{width:70,height:70,borderRadius:"50%",background:`radial-gradient(${C.ochre}28,transparent)`,border:`2px solid ${C.ochre}45`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,margin:"0 auto"}}>👤</div>
-            <div style={{fontFamily:"'Tiro Devanagari Hindi',serif",fontSize:20,color:C.ochre,marginTop:10}}>ग्राम निवासी</div>
-            <div style={{fontSize:12,color:C.chalkDim}}>📍 सोंडवा, अलीराजपुर</div>
+            <div style={{fontFamily:"'Tiro Devanagari Hindi',serif",fontSize:20,color:C.ochre,marginTop:10}}>{currentUser?.name || "ग्राम निवासी"}</div>
+            <div style={{fontSize:12,color:C.chalkDim}}>📍 {currentUser?.village || "सोंडवा"}, अलीराजपुर</div>
+            <div style={{fontSize:11,color:C.orange,marginTop:4}}>{currentUser?.role === "customer"?"👤 Customer":currentUser?.role === "shopkeeper"?"🏪 Shopkeeper":"🏛️ Sarpanch"}</div>
             <Divider/>
             <div style={{display:"flex",justifyContent:"center",gap:24}}>
               {[
@@ -796,9 +846,17 @@ setVotedIds(pr=>[...pr,p.id]);}}
           {icon:"🌐",l:"भाषा बदलें",s:"Hindi / English / Bhili"},
           {icon:"🛡️",l:"Privacy & Security",s:"Account settings"},
           {icon:"ℹ️",l:"App के बारे में",s:"हमारा सोंडवा v1.0"},
+{icon:"🚪",l:"Logout",s:"Account se bahar jao"},
         ].map(item=>(
-          <Card key={item.l} style={{marginBottom:9}}>
+          <Card key={item.l} style={{marginBottom:9}} onClick={async()=>{
+              if(item.l==="Logout"){
+                await auth.signOut();
+                setCurrentUser(null);
+                setScreen("home");
+              }
+            }}>
             <div style={{padding:"13px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          
               <div style={{display:"flex",gap:12,alignItems:"center"}}>
                 <span style={{fontSize:22,width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(212,137,26,.1)",borderRadius:8}}>{item.icon}</span>
                 <div>
